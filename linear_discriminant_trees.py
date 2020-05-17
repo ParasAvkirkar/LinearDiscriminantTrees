@@ -3,6 +3,10 @@ import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn import preprocessing
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 class Utils:
@@ -223,10 +227,32 @@ class LDTree:
         return label_details
 
 
+def min_max_scale(dataset):
+    columns = dataset.columns
+    for col in columns[:-1]:
+        if str(dataset[col].dtype) is 'object':
+            continue
+        x = dataset[col].values.reshape(-1, 1)
+        min_max_scaler = preprocessing.MinMaxScaler()
+        x_scaled = min_max_scaler.fit_transform(x)
+        dataset[col] = x_scaled
+
+    return dataset
+
+
+def apply_pca(X, epsilon):
+    pca = PCA(n_components=epsilon)
+    components = pca.fit_transform(X)
+    return components
+
+
 if __name__ == '__main__':
     # Iris Dataset
     dataset = pd.read_csv('data/iris.data')
+    # dataset = min_max_scale(dataset)
+
     X = dataset.iloc[:, :-1]
+    X = pd.DataFrame(data=apply_pca(X, 0.99))
     y = dataset.iloc[:, -1]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
@@ -237,20 +263,39 @@ if __name__ == '__main__':
     print(f'Validation accuracy: {accuracy_score(y_test, model.predict(X_test))}')
 
     # Breast Cancer Dataset
-    dataset = pd.read_csv('data/breast_cancer.data')
-    X = dataset.iloc[:, :-1]
-    y = dataset.iloc[:, -1]
+    # dataset = pd.read_csv('data/breast_cancer.data')
+    dataset = pd.read_csv('data/ecoli.data', sep='\s+')
+    # dataset = min_max_scale(dataset)
+    stats = {'test_size': [], 'accuracy': [], 'pca_epsilon': []}
+    for epsilon in [0.1, 0.75, 0.99]:
+        for test_size in [0.20, 0.25, 0.30]:
+            X = dataset.iloc[:, 1:-1]
+            X = pd.DataFrame(data=apply_pca(X, epsilon))
+            y = dataset.iloc[:, -1]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=0)
 
-    model = LDTree()
-    model.fit(X_train, y_train)
-    print(f'Training accuracy: {accuracy_score(y_train, model.predict(X_train))}')
-    print(f'Validation accuracy: {accuracy_score(y_test, model.predict(X_test))}')
+            model = LDTree()
+            model.fit(X_train, y_train)
+            print(f'Training accuracy: {accuracy_score(y_train, model.predict(X_train))}')
+            print(f'Validation accuracy: {accuracy_score(y_test, model.predict(X_test))}')
+
+            stats['test_size'].append(test_size)
+            stats['accuracy'].append(accuracy_score(y_test, model.predict(X_test)))
+            stats['pca_epsilon'].append(epsilon)
+    flatui = ["#3498db", "#e74c3c", "#2ecc71"]
+    # sns.palplot(sns.color_palette(flatui))
+    print(str(stats))
+    stats_df = pd.DataFrame(stats)
+    figure, axes = plt.subplots(figsize=(10, 5), nrows=1, ncols=1)
+    sns.lineplot(x='test_size', y='accuracy', hue="pca_epsilon", data=stats_df, ax=axes, palette=sns.color_palette(flatui[:3]))
+    plt.show()
 
     # Ecoli Dataset
     dataset = pd.read_csv('data/ecoli.data', sep='\s+')
+    # dataset = min_max_scale(dataset)
     X = dataset.iloc[:, 1:-1]
+    X = pd.DataFrame(data=apply_pca(X, 0.99))
     y = dataset.iloc[:, -1]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
