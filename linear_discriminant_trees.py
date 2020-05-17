@@ -3,6 +3,8 @@ import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 class Utils:
@@ -229,6 +231,8 @@ if __name__ == '__main__':
     X = dataset.iloc[:, :-1]
     y = dataset.iloc[:, -1]
 
+    stats = {'test_size': [], 'accuracy': [], 'dataset': []}
+
     for test_size in [0.2, 0.25, 0.3]:
         training_accuracies, validation_accuracies = [], []
         for i in range(10):
@@ -240,6 +244,9 @@ if __name__ == '__main__':
             validation_accuracies.append(accuracy_score(y_test, model.predict(X_test)))
 
         print(test_size, np.mean(training_accuracies), np.mean(validation_accuracies))
+        stats['test_size'].append(test_size)
+        stats['accuracy'].append(np.mean(validation_accuracies))
+        stats['dataset'].append('iris')
 
     # Breast Cancer Dataset
     dataset = pd.read_csv('data/breast_cancer.data')
@@ -257,6 +264,9 @@ if __name__ == '__main__':
             validation_accuracies.append(accuracy_score(y_test, model.predict(X_test)))
 
         print(test_size, np.mean(training_accuracies), np.mean(validation_accuracies))
+        stats['test_size'].append(test_size)
+        stats['accuracy'].append(np.mean(validation_accuracies))
+        stats['dataset'].append('breast_cancer')
 
     # Ecoli Dataset
     dataset = pd.read_csv('data/ecoli.data', sep='\s+')
@@ -274,3 +284,14 @@ if __name__ == '__main__':
             validation_accuracies.append(accuracy_score(y_test, model.predict(X_test)))
 
         print(test_size, np.mean(training_accuracies), np.mean(validation_accuracies))
+
+        stats['test_size'].append(test_size)
+        stats['accuracy'].append(np.mean(validation_accuracies))
+        stats['dataset'].append('ecoli')
+
+    stats_df = pd.DataFrame(stats)
+    figure, axes = plt.subplots(figsize=(10, 10), nrows=1, ncols=1)
+    sns.lineplot(x='test_size', y='accuracy', hue="dataset", data=stats_df, ax=axes)
+    plt.tight_layout()
+
+    print("Done")
